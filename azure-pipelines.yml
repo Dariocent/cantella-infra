@@ -1,0 +1,35 @@
+trigger:
+  branches:
+    include:
+      - main  # Update branch name as needed
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.x'
+      addToPath: true
+
+  - script: |
+      python -m pip install --upgrade pip
+      pip install --upgrade setuptools
+    displayName: 'Install Python dependencies'
+
+  - checkout: self
+
+  - script: |
+      terraform init
+      terraform validate
+      terraform plan -out=tfplan -var-file=terraform.tfvars  # Add variables file if needed
+    displayName: 'Terraform init and validate'
+
+  - task: TerraformTaskV1@0
+    inputs:
+      provider: 'azurerm'
+      command: 'apply'
+      workingDirectory: '$(System.DefaultWorkingDirectory)'
+      environmentServiceNameAzureRM: 'your-azure-service-connection'  # Azure service connection
+      terraformArguments: '-auto-approve -var-file=terraform.tfvars'  # Add variables file if needed
+    displayName: 'Terraform apply'
